@@ -4,6 +4,8 @@ from pydub import AudioSegment
 import tkinter as tk
 from tkinter import filedialog
 import ttk
+import subprocess as subproc
+from datetime import datetime
 
 def add_files():
     window.filenames = filedialog.askopenfilenames(
@@ -42,6 +44,10 @@ def get_timestamp_string():
     return str(get_timestamp())
 
 
+def get_datetime_string():
+    return str(datetime.utcnow().strftime('%Y-%m-%d %Hstd %Mmin %Ssek %fmilli'))
+
+
 def get_filepath(file):
     return os.path.dirname(os.path.abspath(file))
 
@@ -50,7 +56,7 @@ def file_exists(file):
     return os.path.isfile(file)
 
 
-def get_destination_file(file, typ):
+def get_destination_file(file, typ=False):
     filename = get_filename_without_extension(file)
     path = get_filepath(file)
     dst = os.path.join(file, "{}.{}".format(filename, typ))
@@ -59,7 +65,7 @@ def get_destination_file(file, typ):
     if file_exists(dst):
         dst = os.path.join(
             path,
-            "{}-{}.{}".format(filename, get_timestamp_string(), typ)
+            "{}-{}.{}".format(filename, get_datetime_string(), typ)
         )
 
     return dst
@@ -101,6 +107,16 @@ def convert_wav_to_mp3():
 def reduce_noise():
     print('Reduce noise!')
 
+    for src in all_files.get():
+        dest = get_destination_file(src, 'mp4')
+
+        # Extract Audio
+        command = 'ffmpeg -i "{}" -af "highpass=f={}, lowpass=f={}" "{}"'.format(src, lowpass.get(), highpass.get(), dest)
+        print(command)
+        subproc.call(command, shell=True)
+        print(command)
+
+
 window = tk.Tk()
 
 window.title("Welcome to LikeGeeks app")
@@ -126,6 +142,11 @@ sep.grid(column=1, row=4, columnspan=5, ipady=20, ipadx=150)
 tk.Button(window, text="MP3 zu WAV konvertieren", command=convert_mp3_to_wav).grid(column=1, row=5, sticky="w")
 tk.Button(window, text="WAV zu MP3 konvertieren", command=convert_wav_to_mp3).grid(column=1, row=6, sticky="w")
 tk.Button(window, text="Rauschen entfernen", command=reduce_noise).grid(column=1, row=7, sticky="w")
+lowpass = tk.StringVar(window, "300")
+highpass = tk.StringVar(window, "4000")
+tk.Entry(window, textvariable=lowpass).grid(column=2, row=7)
+tk.Entry(window, textvariable=highpass).grid(column=2, row=8)
+
 
 # Results
 tk.Label(window, text="Prozess-Ergebnis:").grid(row=15, column=1, columnspan=2)
